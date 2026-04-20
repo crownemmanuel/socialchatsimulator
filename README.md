@@ -17,14 +17,14 @@ The repo includes `avatar.png` for the Meta AI avatar in the chat list and heade
 
 ## Deploying on GitHub Pages
 
-This repo is configured to publish from the **`main`** branch at the **root** (`/`). If you fork or clone:
+This repo uses a **GitHub Actions** workflow (`.github/workflows/pages.yml`) to publish the site on every push to **`main`**. Forks inherit the same setup if Actions are enabled.
 
-1. Push to GitHub on `main`.
-2. **Settings → Pages → Build and deployment:** branch **`main`**, folder **`/`**.
+1. Push to `main` — the **Deploy GitHub Pages** workflow uploads the repo root (including `index.html`) to Pages.
+2. If Pages were not enabled yet: **Settings → Pages → Build and deployment → GitHub Actions** (or run `gh api repos/<owner>/<repo>/pages -X PUT --input '{"build_type":"workflow"}'`).
 
-The site URL is `https://<user>.github.io/<repo>/`. You can also enable or update Pages with:
+The site URL is `https://<user>.github.io/<repo>/`.
 
-`gh api repos/<owner>/<repo>/pages -X POST --input -` (JSON body with `build_type: legacy` and `source: { branch, path }`).
+A **`.nojekyll`** file is included so GitHub does not run Jekyll on the static files (useful if you switch back to “Deploy from a branch”).
 
 ## License
 
