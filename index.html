@@ -126,6 +126,7 @@
     }
 
     .prompt-stage {
+      position: relative;
       padding: clamp(2.5rem, 6vmin, 5rem);
       border-radius: 20px;
       min-height: clamp(480px, 68vh, 880px);
@@ -134,6 +135,77 @@
       align-items: center;
       justify-content: center;
       transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    /* Fake cursor for “Simulate + click” — arrow pointer, 2× base size */
+    .prompt-fake-cursor {
+      position: absolute;
+      width: 56px;
+      height: 56px;
+      z-index: 25;
+      pointer-events: none;
+      filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+      opacity: 0;
+      transition: opacity 0.15s ease;
+      will-change: left, top;
+    }
+
+    .prompt-fake-cursor.is-visible {
+      opacity: 1;
+    }
+
+    .prompt-fake-cursor svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .prompt-sparkle-burst {
+      position: absolute;
+      pointer-events: none;
+      z-index: 28;
+      width: 0;
+      height: 0;
+      overflow: visible;
+    }
+
+    .prompt-sparkle-burst .spark {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #fff 0%, #c4b5fd 40%, transparent 70%);
+      box-shadow: 0 0 10px #a78bfa, 0 0 14px #6366f1;
+      animation: prompt-sparkle-pop 0.55s ease-out forwards;
+    }
+
+    @keyframes prompt-sparkle-pop {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -50%) rotate(var(--spark-rot, 0deg)) translateX(0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -50%) rotate(var(--spark-rot, 0deg)) translateX(34px) scale(0.2);
+      }
+    }
+
+    .prompt-send-icon.prompt-send-pressed {
+      transform: scale(0.88);
+      filter: brightness(1.15);
+    }
+
+    .prompt-simulate-row {
+      display: flex;
+      gap: 10px;
+      margin-top: 4px;
+    }
+
+    .prompt-simulate-row .btn {
+      flex: 1;
+      min-width: 0;
     }
 
     .prompt-stage[data-stage-bg="charcoal"] {
@@ -185,7 +257,7 @@
 
     .prompt-compose-box {
       display: flex;
-      align-items: flex-end;
+      align-items: center;
       gap: 10px;
       padding: 10px 12px;
       border-radius: 17px;
@@ -205,7 +277,9 @@
       border: none;
       background: transparent;
       font-size: 15px;
-      line-height: 1.4;
+      line-height: 22px;
+      padding: 11px 4px;
+      box-sizing: border-box;
       font-family: inherit;
       outline: none;
     }
@@ -225,6 +299,10 @@
 
     .prompt-send-icon:hover {
       transform: scale(1.05);
+    }
+
+    .prompt-send-icon.prompt-send-pressed:hover {
+      transform: scale(0.88);
     }
 
     .prompt-send-icon svg {
@@ -318,13 +396,15 @@
     }
 
     /* Theme: Aurora — animated blue / purple gradient border */
-    .prompt-theme-aurora {
+    .prompt-theme-aurora,
+    .prompt-theme-paper-aura {
       padding: 3px;
       border-radius: 22px;
       overflow: hidden;
     }
 
-    .prompt-theme-aurora::before {
+    .prompt-theme-aurora::before,
+    .prompt-theme-paper-aura::before {
       content: '';
       position: absolute;
       width: 160%;
@@ -373,6 +453,32 @@
     }
 
     .prompt-theme-aurora .prompt-send-icon {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      color: #fff;
+    }
+
+    /* Paper + Aura — white field with same animated gradient ring */
+    .prompt-theme-paper-aura .prompt-compose-box {
+      position: relative;
+      z-index: 1;
+      background: #ffffff;
+      border: none;
+      box-shadow:
+        inset 0 0 0 1px rgba(99, 102, 241, 0.18),
+        0 6px 24px rgba(0, 0, 0, 0.12),
+        0 14px 40px rgba(79, 70, 229, 0.12),
+        0 0 0 1px rgba(0, 0, 0, 0.04);
+    }
+
+    .prompt-theme-paper-aura .prompt-demo-input {
+      color: #111827;
+    }
+
+    .prompt-theme-paper-aura .prompt-demo-input::placeholder {
+      color: #9ca3af;
+    }
+
+    .prompt-theme-paper-aura .prompt-send-icon {
       background: linear-gradient(135deg, #6366f1, #8b5cf6);
       color: #fff;
     }
@@ -1374,11 +1480,13 @@
       transform: translateY(-1px);
     }
 
-    .btn-primary:disabled {
+    .btn-primary:disabled,
+    .btn-secondary:disabled {
       background: #30363d;
       color: #8b949e;
       cursor: not-allowed;
       transform: none;
+      border-color: #30363d;
     }
 
     .btn-secondary {
@@ -1661,11 +1769,17 @@ Design crew</textarea>
             <div class="prompt-stage" id="promptStage" data-stage-bg="black-pattern">
               <div class="prompt-compose prompt-theme-aurora" id="promptCompose">
                 <div class="prompt-compose-box">
-                  <textarea class="prompt-demo-input" id="promptDemoInput" placeholder="Type a message" rows="2" autocomplete="off"></textarea>
+                  <textarea class="prompt-demo-input" id="promptDemoInput" placeholder="Type a message" rows="1" autocomplete="off"></textarea>
                   <button type="button" class="prompt-send-icon" id="promptDemoSend" aria-label="Send">
                     <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
                   </button>
                 </div>
+              </div>
+              <div class="prompt-fake-cursor" id="promptFakeCursor" aria-hidden="true">
+                <svg viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                  <!-- Arrow-style pointer: tip at top-left for click alignment -->
+                  <path fill="#fafafa" stroke="#111827" stroke-width="1.25" stroke-linejoin="round" d="M5 4 L5 24 L11 18 L15 27 L19 25 L15 15 L25 15 L5 4z"/>
+                </svg>
               </div>
             </div>
           </div>
@@ -1674,6 +1788,7 @@ Design crew</textarea>
             <div class="theme-chips" id="promptThemeChips" role="radiogroup" aria-label="Prompt bar theme">
               <button type="button" class="theme-chip" data-theme="midnight" role="radio" aria-checked="false">Midnight</button>
               <button type="button" class="theme-chip" data-theme="paper" role="radio" aria-checked="false">Paper</button>
+              <button type="button" class="theme-chip" data-theme="paper-aura" role="radio" aria-checked="false">Paper + Aura</button>
               <button type="button" class="theme-chip" data-theme="sunset" role="radio" aria-checked="false">Sunset</button>
               <button type="button" class="theme-chip" data-theme="forest" role="radio" aria-checked="false">Forest</button>
               <button type="button" class="theme-chip active" data-theme="aurora" role="radio" aria-checked="true">Aurora</button>
@@ -1690,13 +1805,16 @@ Design crew</textarea>
               <option value="grey">Dark grey</option>
             </select>
             <h3>Simulate typing</h3>
-            <p class="prompt-hint">Text is typed into the preview like someone composing a message.</p>
+            <p class="prompt-hint">Text is typed into the preview like someone composing a message. <strong>Simulate + click</strong> also moves a cursor to the send button, plays a click and sparkles, then clears the field—good for screen recordings.</p>
             <div class="prompt-typing-speed">
               <label for="promptTypingSpeed">Typing speed <output id="promptTypingSpeedOut" for="promptTypingSpeed">48</output> <span style="font-weight:400;color:#8b949e">chars/sec</span></label>
               <input type="range" id="promptTypingSpeed" min="6" max="160" value="48" step="1" aria-valuemin="6" aria-valuemax="160" aria-valuenow="48" />
             </div>
             <textarea class="prompt-simulate-source" id="promptSimulateSource" placeholder="Paste or write text here, then Simulate…" rows="5"></textarea>
-            <button type="button" class="btn btn-primary" id="promptSimulateBtn" style="width:100%">Simulate</button>
+            <div class="prompt-simulate-row">
+              <button type="button" class="btn btn-primary" id="promptSimulateBtn">Simulate</button>
+              <button type="button" class="btn btn-secondary" id="promptSimulateClickBtn" title="Type text, then animate a cursor to Send and click">Simulate + click</button>
+            </div>
           </aside>
         </div>
       </div>
@@ -2127,6 +2245,8 @@ Design crew</textarea>
       const promptDemoInput = document.getElementById('promptDemoInput');
       const promptSimulateSource = document.getElementById('promptSimulateSource');
       const promptSimulateBtn = document.getElementById('promptSimulateBtn');
+      const promptSimulateClickBtn = document.getElementById('promptSimulateClickBtn');
+      const promptFakeCursor = document.getElementById('promptFakeCursor');
       const promptDemoSend = document.getElementById('promptDemoSend');
       const promptTypingSpeed = document.getElementById('promptTypingSpeed');
       const promptTypingSpeedOut = document.getElementById('promptTypingSpeedOut');
@@ -2197,11 +2317,17 @@ Design crew</textarea>
 
       var promptTyping = false;
 
-      function typeIntoPromptField(text, charsPerSec) {
+      function setPromptSimulateButtonsDisabled(disabled) {
+        if (promptSimulateBtn) promptSimulateBtn.disabled = disabled;
+        if (promptSimulateClickBtn) promptSimulateClickBtn.disabled = disabled;
+      }
+
+      function typeIntoPromptField(text, charsPerSec, opts) {
+        opts = opts || {};
         if (charsPerSec === undefined) charsPerSec = getTypingCharsPerSec();
         if (promptTyping) return Promise.resolve();
         promptTyping = true;
-        promptSimulateBtn.disabled = true;
+        setPromptSimulateButtonsDisabled(true);
         promptDemoInput.value = '';
         return new Promise(function (resolve) {
           var i = 0;
@@ -2214,8 +2340,10 @@ Design crew</textarea>
               setTimeout(tick, delay);
             } else {
               promptTyping = false;
-              promptSimulateBtn.disabled = false;
-              promptDemoInput.focus();
+              if (!opts.skipEnableAfter) {
+                setPromptSimulateButtonsDisabled(false);
+                promptDemoInput.focus();
+              }
               resolve();
             }
           }
@@ -2223,9 +2351,96 @@ Design crew</textarea>
         });
       }
 
+      function spawnPromptSparkles(button, stageEl) {
+        if (!button || !stageEl) return;
+        var s = stageEl.getBoundingClientRect();
+        var b = button.getBoundingClientRect();
+        var cx = b.left - s.left + b.width / 2;
+        var cy = b.top - s.top + b.height / 2;
+        var burst = document.createElement('div');
+        burst.className = 'prompt-sparkle-burst';
+        burst.style.left = cx + 'px';
+        burst.style.top = cy + 'px';
+        burst.style.transform = 'translate(-50%, -50%)';
+        var n = 14;
+        for (var i = 0; i < n; i++) {
+          var sp = document.createElement('span');
+          sp.className = 'spark';
+          sp.style.setProperty('--spark-rot', (i * (360 / n)) + 'deg');
+          burst.appendChild(sp);
+        }
+        stageEl.appendChild(burst);
+        window.setTimeout(function () {
+          burst.remove();
+        }, 600);
+      }
+
+      function runPromptCursorClick() {
+        return new Promise(function (resolve) {
+          var cursor = promptFakeCursor;
+          var stage = promptStage;
+          var btn = promptDemoSend;
+          if (!cursor || !stage || !btn) {
+            resolve();
+            return;
+          }
+          var s = stage.getBoundingClientRect();
+          var b = btn.getBoundingClientRect();
+          var cursorSize = 56;
+          var half = cursorSize / 2;
+          /* Tip of arrow (upper area of icon) relative to box top-left */
+          var tipX = 12;
+          var tipY = 10;
+          var endLeft = b.left - s.left + b.width / 2 - tipX;
+          var endTop = b.top - s.top + b.height / 2 - tipY;
+          var startLeft = s.width / 2 - half;
+          var startTop = s.height - cursorSize - 20;
+
+          cursor.style.transition = 'none';
+          cursor.style.left = startLeft + 'px';
+          cursor.style.top = startTop + 'px';
+          cursor.classList.add('is-visible');
+
+          window.requestAnimationFrame(function () {
+            window.requestAnimationFrame(function () {
+              cursor.style.transition = 'left 0.78s cubic-bezier(0.33, 1, 0.68, 1), top 0.78s cubic-bezier(0.33, 1, 0.68, 1)';
+              cursor.style.left = endLeft + 'px';
+              cursor.style.top = endTop + 'px';
+            });
+          });
+
+          window.setTimeout(function () {
+            btn.classList.add('prompt-send-pressed');
+            spawnPromptSparkles(btn, stage);
+            promptDemoInput.value = '';
+            promptDemoInput.style.height = 'auto';
+            window.setTimeout(function () {
+              btn.classList.remove('prompt-send-pressed');
+              cursor.classList.remove('is-visible');
+              cursor.style.transition = 'none';
+              cursor.style.left = startLeft + 'px';
+              cursor.style.top = startTop + 'px';
+              resolve();
+            }, 260);
+          }, 800);
+        });
+      }
+
       promptSimulateBtn.addEventListener('click', function () {
         var text = promptSimulateSource.value;
         if (text) typeIntoPromptField(text, getTypingCharsPerSec());
+      });
+
+      promptSimulateClickBtn.addEventListener('click', function () {
+        var text = promptSimulateSource.value;
+        if (!text) return;
+        typeIntoPromptField(text, getTypingCharsPerSec(), { skipEnableAfter: true })
+          .then(function () {
+            return runPromptCursorClick();
+          })
+          .finally(function () {
+            setPromptSimulateButtonsDisabled(false);
+          });
       });
 
       promptDemoSend.addEventListener('click', function () {
