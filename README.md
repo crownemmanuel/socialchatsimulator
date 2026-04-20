@@ -2,8 +2,8 @@
 
 A browser-based **social chat mockup** for demos, tutorials, and video. It includes a **WhatsApp-style** phone UI (editable chat list, typing simulation, optional auto-replies) and a separate **prompt bar** tab with themes (including an animated Aurora border), stage backdrops for green/blue screen or patterned shots, and adjustable typing speed.
 
-**Live site (GitHub Pages):** after you enable Pages on this repo, visit  
-`https://crownemmanuel.github.io/socialchatsimulator/`
+**Live site (GitHub Pages):**  
+[https://crownemmanuel.github.io/socialchatsimulator/](https://crownemmanuel.github.io/socialchatsimulator/)
 
 ## Usage
 
@@ -11,20 +11,20 @@ A browser-based **social chat mockup** for demos, tutorials, and video. It inclu
 - **WhatsApp tab:** Edit chat names (one per line), pick a **chat target**, type the message to **simulate typing** into the composer, and use **Options** for frame size and reply behavior.
 - **Prompt field tab:** Pick a theme and backdrop, set typing speed, enter text, then **Simulate**.
 
-### Optional asset
+### Avatar image
 
-Place an optional `avatar.png` (square image) in the project root if you want a custom image for the Meta AI avatar in the chat list and header. If the file is missing, the browser may show a broken image for that slot; you can ignore it or add your own asset.
+The repo includes `avatar.png` for the Meta AI avatar in the chat list and header. Replace it with your own square image if you like.
 
 ## Deploying on GitHub Pages
 
-1. Push this repository to GitHub (`main` branch).
-2. In the repo: **Settings → Pages**.
-3. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-4. Choose branch **`main`**, folder **`/ (root)`**, then save.
+This repo is configured to publish from the **`main`** branch at the **root** (`/`). If you fork or clone:
 
-The site will be available at `https://<user>.github.io/<repo>/`.
+1. Push to GitHub on `main`.
+2. **Settings → Pages → Build and deployment:** branch **`main`**, folder **`/`**.
 
-You can also enable Pages via the GitHub CLI (see project setup scripts or run the API call documented in GitHub’s REST API for “Create a GitHub Pages site”).
+The site URL is `https://<user>.github.io/<repo>/`. You can also enable or update Pages with:
+
+`gh api repos/<owner>/<repo>/pages -X POST --input -` (JSON body with `build_type: legacy` and `source: { branch, path }`).
 
 ## License
 
