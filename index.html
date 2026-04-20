@@ -125,16 +125,32 @@
       margin-bottom: 12px;
     }
 
+    .prompt-stage-host {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
     .prompt-stage {
       position: relative;
+      flex-shrink: 0;
+      box-sizing: border-box;
       padding: clamp(2.5rem, 6vmin, 5rem);
       border-radius: 20px;
-      min-height: clamp(480px, 68vh, 880px);
-      width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: background 0.25s ease, border-color 0.25s ease, box-shadow 0.25s ease;
+    }
+
+    .prompt-viewport-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-bottom: 12px;
     }
 
     /* Fake cursor for “Simulate + click” — arrow pointer, 2× base size */
@@ -282,6 +298,15 @@
       box-sizing: border-box;
       font-family: inherit;
       outline: none;
+      overflow-y: auto;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    .prompt-demo-input::-webkit-scrollbar {
+      display: none;
+      width: 0;
+      height: 0;
     }
 
     .prompt-send-icon {
@@ -635,8 +660,11 @@
         width: 100%;
       }
 
+      .prompt-stage-host {
+        justify-content: flex-start;
+      }
+
       .prompt-stage {
-        min-height: clamp(340px, 58vh, 720px);
         padding: clamp(1.25rem, 4vmin, 2.5rem);
       }
     }
@@ -1766,6 +1794,7 @@ Design crew</textarea>
         <div class="prompt-tab-layout">
           <div class="prompt-tab-preview">
             <div class="prompt-tab-label">Prompt bar preview</div>
+            <div class="prompt-stage-host" id="promptStageHost">
             <div class="prompt-stage" id="promptStage" data-stage-bg="black-pattern">
               <div class="prompt-compose prompt-theme-aurora" id="promptCompose">
                 <div class="prompt-compose-box">
@@ -1781,6 +1810,7 @@ Design crew</textarea>
                   <path fill="#fafafa" stroke="#111827" stroke-width="1.25" stroke-linejoin="round" d="M5 4 L5 24 L11 18 L15 27 L19 25 L15 15 L25 15 L5 4z"/>
                 </svg>
               </div>
+            </div>
             </div>
           </div>
           <aside class="prompt-tab-controls">
@@ -1804,6 +1834,20 @@ Design crew</textarea>
               <option value="blue">Blue screen</option>
               <option value="grey">Dark grey</option>
             </select>
+            <h3>Preview size</h3>
+            <p class="panel-hint">Desktop is wider; Mobile uses a narrow frame. Adjust width and height with the sliders—updates apply in real time.</p>
+            <div class="prompt-viewport-chips" role="group" aria-label="Viewport preset">
+              <button type="button" class="theme-chip active" id="promptViewportDesktop" data-preset="desktop">Desktop</button>
+              <button type="button" class="theme-chip" id="promptViewportMobile" data-preset="mobile">Mobile</button>
+            </div>
+            <div class="prompt-typing-speed">
+              <label for="promptStageWidth">Width <output id="promptStageWidthOut" for="promptStageWidth">900</output> <span style="font-weight:400;color:#8b949e">px</span></label>
+              <input type="range" id="promptStageWidth" min="280" max="1200" value="900" step="10" />
+            </div>
+            <div class="prompt-typing-speed">
+              <label for="promptStageHeight">Height <output id="promptStageHeightOut" for="promptStageHeight">640</output> <span style="font-weight:400;color:#8b949e">px</span></label>
+              <input type="range" id="promptStageHeight" min="320" max="900" value="640" step="10" />
+            </div>
             <h3>Simulate typing</h3>
             <p class="prompt-hint">Text is typed into the preview like someone composing a message. <strong>Simulate + click</strong> also moves a cursor to the send button, plays a click and sparkles, then clears the field—good for screen recordings.</p>
             <div class="prompt-typing-speed">
@@ -2240,6 +2284,12 @@ Design crew</textarea>
       const paneWhatsapp = document.getElementById('tabPaneWhatsapp');
       const panePrompt = document.getElementById('tabPanePrompt');
       const promptStage = document.getElementById('promptStage');
+      const promptStageWidth = document.getElementById('promptStageWidth');
+      const promptStageHeight = document.getElementById('promptStageHeight');
+      const promptStageWidthOut = document.getElementById('promptStageWidthOut');
+      const promptStageHeightOut = document.getElementById('promptStageHeightOut');
+      const promptViewportDesktop = document.getElementById('promptViewportDesktop');
+      const promptViewportMobile = document.getElementById('promptViewportMobile');
       const promptStageBg = document.getElementById('promptStageBg');
       const promptCompose = document.getElementById('promptCompose');
       const promptDemoInput = document.getElementById('promptDemoInput');
@@ -2296,6 +2346,78 @@ Design crew</textarea>
         promptStageBg.addEventListener('change', syncStageBg);
         syncStageBg();
       }
+
+      var PROMPT_PRESET_DESKTOP = { w: 900, h: 640 };
+      var PROMPT_PRESET_MOBILE = { w: 390, h: 700 };
+
+      function setViewportChipActive(isDesktop) {
+        if (promptViewportDesktop) {
+          promptViewportDesktop.classList.toggle('active', isDesktop);
+          promptViewportDesktop.setAttribute('aria-pressed', isDesktop ? 'true' : 'false');
+        }
+        if (promptViewportMobile) {
+          promptViewportMobile.classList.toggle('active', !isDesktop);
+          promptViewportMobile.setAttribute('aria-pressed', !isDesktop ? 'true' : 'false');
+        }
+      }
+
+      function clearViewportChipActive() {
+        if (promptViewportDesktop) {
+          promptViewportDesktop.classList.remove('active');
+          promptViewportDesktop.setAttribute('aria-pressed', 'false');
+        }
+        if (promptViewportMobile) {
+          promptViewportMobile.classList.remove('active');
+          promptViewportMobile.setAttribute('aria-pressed', 'false');
+        }
+      }
+
+      function applyPromptStageSize() {
+        if (!promptStage || !promptStageWidth || !promptStageHeight) return;
+        var w = parseInt(promptStageWidth.value, 10);
+        var h = parseInt(promptStageHeight.value, 10);
+        if (isNaN(w) || w < 1) w = 900;
+        if (isNaN(h) || h < 1) h = 640;
+        promptStage.style.width = w + 'px';
+        promptStage.style.height = h + 'px';
+        if (promptStageWidthOut) promptStageWidthOut.textContent = String(w);
+        if (promptStageHeightOut) promptStageHeightOut.textContent = String(h);
+      }
+
+      function applyPromptPreset(preset) {
+        if (!promptStageWidth || !promptStageHeight) return;
+        var p = preset === 'mobile' ? PROMPT_PRESET_MOBILE : PROMPT_PRESET_DESKTOP;
+        promptStageWidth.value = String(p.w);
+        promptStageHeight.value = String(p.h);
+        applyPromptStageSize();
+        setViewportChipActive(preset !== 'mobile');
+      }
+
+      function onPromptStageSliderInput() {
+        applyPromptStageSize();
+        clearViewportChipActive();
+      }
+
+      if (promptStageWidth) {
+        promptStageWidth.addEventListener('input', onPromptStageSliderInput);
+        promptStageWidth.addEventListener('change', onPromptStageSliderInput);
+      }
+      if (promptStageHeight) {
+        promptStageHeight.addEventListener('input', onPromptStageSliderInput);
+        promptStageHeight.addEventListener('change', onPromptStageSliderInput);
+      }
+      if (promptViewportDesktop) {
+        promptViewportDesktop.addEventListener('click', function () {
+          applyPromptPreset('desktop');
+        });
+      }
+      if (promptViewportMobile) {
+        promptViewportMobile.addEventListener('click', function () {
+          applyPromptPreset('mobile');
+        });
+      }
+
+      applyPromptStageSize();
 
       function getTypingCharsPerSec() {
         if (!promptTypingSpeed) return 48;
