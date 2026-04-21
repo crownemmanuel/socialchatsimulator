@@ -224,6 +224,113 @@
       min-width: 0;
     }
 
+    .prompt-record-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      background: #2b0f11;
+      border: 1px solid #5f1d22;
+      color: #fda4af;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .prompt-record-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: #dc2626;
+      cursor: pointer;
+    }
+
+    .prompt-record-toggle:hover {
+      background: #3a1518;
+      border-color: #7f1d1d;
+      color: #fecdd3;
+    }
+
+    .prompt-record-toggle.is-recording {
+      background: #b91c1c;
+      border-color: #fca5a5;
+      color: #fff;
+      animation: prompt-rec-pulse 1s ease-in-out infinite;
+    }
+
+    .prompt-record-download {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .prompt-record-download.is-visible {
+      display: block;
+    }
+
+    .whatsapp-record-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 10px;
+      padding: 10px 12px;
+      background: #2b0f11;
+      border: 1px solid #5f1d22;
+      color: #fda4af;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1;
+      user-select: none;
+    }
+
+    .whatsapp-record-toggle input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 0;
+      accent-color: #dc2626;
+      cursor: pointer;
+    }
+
+    .whatsapp-record-toggle:hover {
+      background: #3a1518;
+      border-color: #7f1d1d;
+      color: #fecdd3;
+    }
+
+    .whatsapp-record-toggle.is-recording {
+      background: #b91c1c;
+      border-color: #fca5a5;
+      color: #fff;
+      animation: prompt-rec-pulse 1s ease-in-out infinite;
+    }
+
+    .whatsapp-record-download {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .whatsapp-record-download.is-visible {
+      display: block;
+    }
+
+    @keyframes prompt-rec-pulse {
+      0%,
+      100% {
+        box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.45);
+      }
+      50% {
+        box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+      }
+    }
+
     .prompt-stage[data-stage-bg="charcoal"] {
       background: #0d1117;
       border: 1px solid #30363d;
@@ -1758,6 +1865,11 @@ Design crew</textarea>
         </select>
         <textarea class="custom-script-textarea" id="simulateMessage" rows="6" placeholder="Type what should appear in the message field…"></textarea>
         <button class="btn btn-primary" id="simulateBtn" style="width:100%">Simulate typing</button>
+        <label class="whatsapp-record-toggle" id="whatsappRecordToggleWrap" title="Record while simulating">
+          <input type="checkbox" id="whatsappRecordToggle" />
+          <span id="whatsappRecordToggleLabel">Record output</span>
+        </label>
+        <a class="btn btn-secondary whatsapp-record-download" id="whatsappRecordingDownload" href="#" download="whatsapp-simulation.webm">Download recording</a>
       </div>
 
       <div class="panel-card">
@@ -1859,6 +1971,11 @@ Design crew</textarea>
               <button type="button" class="btn btn-primary" id="promptSimulateBtn">Simulate</button>
               <button type="button" class="btn btn-secondary" id="promptSimulateClickBtn" title="Type text, then animate a cursor to Send and click">Simulate + click</button>
             </div>
+            <label class="prompt-record-toggle" id="promptRecordToggleWrap" title="Record while simulating">
+              <input type="checkbox" id="promptRecordToggle" />
+              <span id="promptRecordToggleLabel">Record output</span>
+            </label>
+            <a class="btn btn-secondary prompt-record-download" id="promptRecordingDownload" href="#" download="prompt-simulation.webm">Download recording</a>
           </aside>
         </div>
       </div>
@@ -1876,6 +1993,10 @@ Design crew</textarea>
       const chatTargetSelect = document.getElementById('chatTargetSelect');
       const simulateBtn = document.getElementById('simulateBtn');
       const simulateMessage = document.getElementById('simulateMessage');
+      const whatsappRecordToggle = document.getElementById('whatsappRecordToggle');
+      const whatsappRecordToggleWrap = document.getElementById('whatsappRecordToggleWrap');
+      const whatsappRecordToggleLabel = document.getElementById('whatsappRecordToggleLabel');
+      const whatsappRecordingDownload = document.getElementById('whatsappRecordingDownload');
       const chatNamesList = document.getElementById('chatNamesList');
       const autoReplyCheck = document.getElementById('autoReply');
       const typingIndicatorCheck = document.getElementById('typingIndicator');
@@ -1895,6 +2016,15 @@ Design crew</textarea>
       let pendingImages = [];
       let isTyping = false;
       let activeChatId = 'meta-ai';
+      let whatsappRecordingUrl = '';
+      let whatsappRecordingActive = false;
+
+      const WHATSAPP_RECORD_FPS = 60;
+      const WHATSAPP_RECORD_VIDEO_BITRATE = 16000000;
+      const WHATSAPP_RECORD_PADDING_X = 100;
+      const WHATSAPP_RECORD_PADDING_Y = 100;
+      const WHATSAPP_RECORD_PRE_SIM_DELAY_MS = 1000;
+      const WHATSAPP_RECORD_POST_SIM_DELAY_MS = 500;
 
       const RANDOM_MESSAGES = [
         'Sounds good!', 'See you tomorrow', '✓✓ Got it thanks', 'Let me check',
@@ -2113,6 +2243,281 @@ Design crew</textarea>
         if (el) el.remove();
       }
 
+      function delayMs(ms) {
+        return new Promise(resolve => {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      function setWhatsAppRecordToggleActive(active) {
+        if (whatsappRecordToggleWrap) {
+          whatsappRecordToggleWrap.classList.toggle('is-recording', active);
+        }
+        if (whatsappRecordToggle) {
+          whatsappRecordToggle.disabled = active;
+        }
+        if (whatsappRecordToggleLabel) {
+          whatsappRecordToggleLabel.textContent = active ? 'Recording...' : 'Record output';
+        }
+      }
+
+      function clearWhatsAppRecordingUrl() {
+        if (whatsappRecordingUrl) {
+          URL.revokeObjectURL(whatsappRecordingUrl);
+          whatsappRecordingUrl = '';
+        }
+      }
+
+      function getWhatsAppRecordingFormat() {
+        const candidates = [
+          { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', extension: 'mp4' },
+          { mimeType: 'video/mp4;codecs=h264,aac', extension: 'mp4' },
+          { mimeType: 'video/mp4', extension: 'mp4' },
+          { mimeType: 'video/webm;codecs=vp9,opus', extension: 'webm' },
+          { mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm' },
+          { mimeType: 'video/webm', extension: 'webm' }
+        ];
+        for (let i = 0; i < candidates.length; i++) {
+          if (window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i].mimeType)) {
+            return candidates[i];
+          }
+        }
+        return { mimeType: '', extension: 'webm' };
+      }
+
+      function createWhatsAppMediaRecorder(stream) {
+        const preferred = getWhatsAppRecordingFormat();
+        const candidates = [];
+
+        function pushCandidate(mimeType, extension) {
+          if (mimeType && window.MediaRecorder && MediaRecorder.isTypeSupported && !MediaRecorder.isTypeSupported(mimeType)) return;
+          for (let i = 0; i < candidates.length; i++) {
+            if (candidates[i].mimeType === mimeType) return;
+          }
+          candidates.push({ mimeType, extension });
+        }
+
+        pushCandidate(preferred.mimeType, preferred.extension || 'webm');
+        pushCandidate('video/webm;codecs=vp9,opus', 'webm');
+        pushCandidate('video/webm;codecs=vp8,opus', 'webm');
+        pushCandidate('video/webm', 'webm');
+        pushCandidate('', 'webm');
+
+        let lastError = null;
+        for (let i = 0; i < candidates.length; i++) {
+          try {
+            const options = { videoBitsPerSecond: WHATSAPP_RECORD_VIDEO_BITRATE };
+            if (candidates[i].mimeType) options.mimeType = candidates[i].mimeType;
+            return {
+              recorder: new MediaRecorder(stream, options),
+              preferredExtension: candidates[i].extension
+            };
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        throw (lastError || new Error('Unable to initialize WhatsApp MediaRecorder.'));
+      }
+
+      async function startWhatsAppRegionRecording(regionEl) {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: WHATSAPP_RECORD_FPS },
+            cursor: 'always'
+          },
+          audio: false
+        });
+
+        const sourceVideo = document.createElement('video');
+        sourceVideo.muted = true;
+        sourceVideo.playsInline = true;
+        sourceVideo.srcObject = displayStream;
+        await sourceVideo.play();
+
+        const canvas = document.createElement('canvas');
+        const canvasStream = canvas.captureStream(WHATSAPP_RECORD_FPS);
+        const recorderSetup = createWhatsAppMediaRecorder(canvasStream);
+        const recorder = recorderSetup.recorder;
+        const chunks = [];
+        const dpr = window.devicePixelRatio || 1;
+
+        let rafId = 0;
+        let stopped = false;
+        let recordingDone;
+
+        const initialRect = regionEl.getBoundingClientRect();
+        const outputWidthCss = Math.max(2, Math.round(initialRect.width + (WHATSAPP_RECORD_PADDING_X * 2)));
+        const outputHeightCss = Math.max(2, Math.round(initialRect.height + (WHATSAPP_RECORD_PADDING_Y * 2)));
+        const targetPixelWidth = Math.max(2, Math.round(outputWidthCss * dpr));
+        const targetPixelHeight = Math.max(2, Math.round(outputHeightCss * dpr));
+
+        function stopTracks(stream) {
+          if (!stream) return;
+          stream.getTracks().forEach(track => {
+            track.stop();
+          });
+        }
+
+        function stopPainter() {
+          if (rafId) {
+            window.cancelAnimationFrame(rafId);
+            rafId = 0;
+          }
+        }
+
+        function cleanupSource() {
+          stopPainter();
+          stopTracks(canvasStream);
+          stopTracks(displayStream);
+          sourceVideo.pause();
+          sourceVideo.srcObject = null;
+        }
+
+        function paintRegionFrame() {
+          if (stopped) return;
+          const rect = regionEl.getBoundingClientRect();
+          const viewportW = Math.max(window.innerWidth || 0, 1);
+          const viewportH = Math.max(window.innerHeight || 0, 1);
+          const videoW = Math.max(sourceVideo.videoWidth || 0, 1);
+          const videoH = Math.max(sourceVideo.videoHeight || 0, 1);
+          const scaleX = videoW / viewportW;
+          const scaleY = videoH / viewportH;
+          const centerXCss = rect.left + (rect.width / 2);
+          const centerYCss = rect.top + (rect.height / 2);
+          const srcW = Math.min(videoW, targetPixelWidth);
+          const srcH = Math.min(videoH, targetPixelHeight);
+
+          const centerXVideo = centerXCss * scaleX;
+          const centerYVideo = centerYCss * scaleY;
+
+          let srcX = Math.round(centerXVideo - (srcW / 2));
+          let srcY = Math.round(centerYVideo - (srcH / 2));
+
+          if (srcX < 0) srcX = 0;
+          if (srcY < 0) srcY = 0;
+          if (srcX + srcW > videoW) srcX = Math.max(0, videoW - srcW);
+          if (srcY + srcH > videoH) srcY = Math.max(0, videoH - srcH);
+
+          if (canvas.width !== srcW || canvas.height !== srcH) {
+            canvas.width = srcW;
+            canvas.height = srcH;
+          }
+
+          const ctx = canvas.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+          ctx.drawImage(sourceVideo, srcX, srcY, srcW, srcH, 0, 0, srcW / dpr, srcH / dpr);
+
+          rafId = window.requestAnimationFrame(paintRegionFrame);
+        }
+
+        displayStream.getVideoTracks().forEach(track => {
+          track.addEventListener('ended', () => {
+            if (!stopped) {
+              stopped = true;
+              stopPainter();
+              if (recorder.state !== 'inactive') recorder.stop();
+            }
+          });
+        });
+
+        recorder.ondataavailable = event => {
+          if (event.data && event.data.size) chunks.push(event.data);
+        };
+
+        recordingDone = new Promise((resolve, reject) => {
+          recorder.onstop = () => {
+            cleanupSource();
+            resolve(new Blob(chunks, { type: recorder.mimeType || 'video/webm' }));
+          };
+          recorder.onerror = event => {
+            cleanupSource();
+            reject(event.error || new Error('WhatsApp recording failed.'));
+          };
+        });
+
+        paintRegionFrame();
+        recorder.start(200);
+
+        return {
+          preferredExtension: recorderSetup.preferredExtension,
+          stop: () => {
+            if (stopped) return recordingDone;
+            stopped = true;
+            stopPainter();
+            if (recorder.state !== 'inactive') recorder.stop();
+            return recordingDone;
+          }
+        };
+      }
+
+      function waitForWhatsAppSimulationComplete(maxWaitMs) {
+        const startedAt = Date.now();
+        return new Promise(resolve => {
+          function check() {
+            if (!isTyping && !simulateBtn.disabled) {
+              resolve();
+              return;
+            }
+            if (Date.now() - startedAt > maxWaitMs) {
+              resolve();
+              return;
+            }
+            window.requestAnimationFrame(check);
+          }
+          check();
+        });
+      }
+
+      async function runWhatsAppSimulationWithOptionalRecording(simulationStarter) {
+        if (!whatsappRecordToggle || !whatsappRecordToggle.checked) {
+          simulationStarter();
+          return;
+        }
+
+        if (whatsappRecordingActive) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder) {
+          alert('Screen recording is not supported in this browser.');
+          return;
+        }
+
+        let recorderSession = null;
+        whatsappRecordingActive = true;
+        setWhatsAppRecordToggleActive(true);
+        if (whatsappRecordingDownload) {
+          whatsappRecordingDownload.classList.remove('is-visible');
+        }
+        clearWhatsAppRecordingUrl();
+
+        try {
+          recorderSession = await startWhatsAppRegionRecording(phoneFrame);
+          await delayMs(WHATSAPP_RECORD_PRE_SIM_DELAY_MS);
+          simulationStarter();
+          await waitForWhatsAppSimulationComplete(180000);
+          await delayMs(WHATSAPP_RECORD_POST_SIM_DELAY_MS);
+          const recordedBlob = await recorderSession.stop();
+          if (recordedBlob && recordedBlob.size > 0 && whatsappRecordingDownload) {
+            const outputExtension = (recorderSession.preferredExtension === 'mp4' || /mp4/i.test(recordedBlob.type)) ? 'mp4' : 'webm';
+            whatsappRecordingUrl = URL.createObjectURL(recordedBlob);
+            whatsappRecordingDownload.href = whatsappRecordingUrl;
+            whatsappRecordingDownload.download = 'whatsapp-simulation-' + Date.now() + '.' + outputExtension;
+            whatsappRecordingDownload.textContent = outputExtension === 'mp4' ? 'Download recording (MP4)' : 'Download recording (WebM)';
+            whatsappRecordingDownload.classList.add('is-visible');
+            whatsappRecordingDownload.click();
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          whatsappRecordingActive = false;
+          setWhatsAppRecordToggleActive(false);
+        }
+      }
+
       function typeIntoInput(text, charsPerSec = 50) {
         if (isTyping) return Promise.resolve();
         isTyping = true;
@@ -2251,9 +2656,22 @@ Design crew</textarea>
         const text = simulateMessage.value;
         if (!text.trim()) return;
         const target = chatTargetSelect.value;
-        ensureChatOpen(target);
-        typeIntoInput(text);
+        runWhatsAppSimulationWithOptionalRecording(() => {
+          ensureChatOpen(target);
+          typeIntoInput(text);
+        });
       });
+
+      if (whatsappRecordToggle) {
+        whatsappRecordToggle.addEventListener('change', () => {
+          if (whatsappRecordToggleWrap && !whatsappRecordingActive) {
+            whatsappRecordToggleWrap.classList.toggle('is-recording', false);
+          }
+          if (whatsappRecordToggleLabel && !whatsappRecordingActive) {
+            whatsappRecordToggleLabel.textContent = 'Record output';
+          }
+        });
+      }
 
       if (chatNamesList) {
         chatNamesList.addEventListener('input', () => {
@@ -2295,13 +2713,18 @@ Design crew</textarea>
       const promptDemoInput = document.getElementById('promptDemoInput');
       const promptSimulateSource = document.getElementById('promptSimulateSource');
       const promptSimulateBtn = document.getElementById('promptSimulateBtn');
+      const promptRecordToggle = document.getElementById('promptRecordToggle');
+      const promptRecordToggleWrap = document.getElementById('promptRecordToggleWrap');
+      const promptRecordToggleLabel = document.getElementById('promptRecordToggleLabel');
       const promptSimulateClickBtn = document.getElementById('promptSimulateClickBtn');
+      const promptRecordingDownload = document.getElementById('promptRecordingDownload');
       const promptFakeCursor = document.getElementById('promptFakeCursor');
       const promptDemoSend = document.getElementById('promptDemoSend');
       const promptTypingSpeed = document.getElementById('promptTypingSpeed');
       const promptTypingSpeedOut = document.getElementById('promptTypingSpeedOut');
       const themeChips = document.querySelectorAll('#promptThemeChips .theme-chip');
       const THEME_PREFIX = 'prompt-theme-';
+      let promptRecordingUrl = '';
 
       function setTab(id) {
         tabs.forEach(function (btn) {
@@ -2438,10 +2861,546 @@ Design crew</textarea>
       }
 
       var promptTyping = false;
+      var promptRecordingActive = false;
+      var PROMPT_RECORD_FPS = 60;
+      var PROMPT_RECORD_VIDEO_BITRATE = 16000000;
+      var PROMPT_RECORD_PADDING_X = 100;
+      var PROMPT_RECORD_PADDING_Y = 100;
+      var PROMPT_RECORD_PRE_SIM_DELAY_MS = 1000;
+      var PROMPT_RECORD_POST_SIM_DELAY_MS = 500;
+
+      function delayMs(ms) {
+        return new Promise(function (resolve) {
+          window.setTimeout(resolve, ms);
+        });
+      }
+
+      function setPromptRecButtonActive(active) {
+        if (promptRecordToggleWrap) {
+          promptRecordToggleWrap.classList.toggle('is-recording', active);
+        }
+        if (promptRecordToggle) {
+          promptRecordToggle.disabled = active;
+        }
+        if (promptRecordToggleLabel) {
+          promptRecordToggleLabel.textContent = active ? 'Recording...' : 'Record output';
+        }
+      }
+
+      function clearPromptRecordingUrl() {
+        if (promptRecordingUrl) {
+          URL.revokeObjectURL(promptRecordingUrl);
+          promptRecordingUrl = '';
+        }
+      }
+
+      function getPromptRecordingFormat() {
+        var candidates = [
+          { mimeType: 'video/mp4;codecs=avc1.42E01E,mp4a.40.2', extension: 'mp4' },
+          { mimeType: 'video/mp4;codecs=h264,aac', extension: 'mp4' },
+          { mimeType: 'video/mp4', extension: 'mp4' },
+          { mimeType: 'video/webm;codecs=vp9,opus', extension: 'webm' },
+          { mimeType: 'video/webm;codecs=vp8,opus', extension: 'webm' },
+          { mimeType: 'video/webm', extension: 'webm' }
+        ];
+        for (var i = 0; i < candidates.length; i++) {
+          if (window.MediaRecorder && MediaRecorder.isTypeSupported(candidates[i].mimeType)) {
+            return candidates[i];
+          }
+        }
+        return { mimeType: '', extension: 'webm' };
+      }
+
+      function createPromptMediaRecorder(stream) {
+        var preferred = getPromptRecordingFormat();
+        var candidates = [];
+
+        function pushCandidate(mimeType, extension) {
+          if (mimeType && window.MediaRecorder && MediaRecorder.isTypeSupported && !MediaRecorder.isTypeSupported(mimeType)) return;
+          for (var i = 0; i < candidates.length; i++) {
+            if (candidates[i].mimeType === mimeType) return;
+          }
+          candidates.push({ mimeType: mimeType, extension: extension });
+        }
+
+        pushCandidate(preferred.mimeType, preferred.extension || 'webm');
+        pushCandidate('video/webm;codecs=vp9,opus', 'webm');
+        pushCandidate('video/webm;codecs=vp8,opus', 'webm');
+        pushCandidate('video/webm', 'webm');
+        pushCandidate('', 'webm');
+
+        var lastError = null;
+        for (var i = 0; i < candidates.length; i++) {
+          try {
+            var options = { videoBitsPerSecond: PROMPT_RECORD_VIDEO_BITRATE };
+            if (candidates[i].mimeType) options.mimeType = candidates[i].mimeType;
+            return {
+              recorder: new MediaRecorder(stream, options),
+              preferredExtension: candidates[i].extension
+            };
+          } catch (error) {
+            lastError = error;
+          }
+        }
+
+        throw (lastError || new Error('Unable to initialize MediaRecorder.'));
+      }
+
+      function waitForPromptSimulationComplete(maxWaitMs) {
+        var startedAt = Date.now();
+        return new Promise(function (resolve) {
+          function check() {
+            if (!promptTyping && !promptSimulateBtn.disabled && !promptSimulateClickBtn.disabled) {
+              resolve();
+              return;
+            }
+            if (Date.now() - startedAt > maxWaitMs) {
+              resolve();
+              return;
+            }
+            window.requestAnimationFrame(check);
+          }
+          check();
+        });
+      }
+
+      function getPromptRecordingCapabilities() {
+        var ua = navigator.userAgent || '';
+        return {
+          supportsWebCodecs: typeof VideoEncoder !== 'undefined' && typeof VideoFrame !== 'undefined',
+          supportsOffscreenCanvas: typeof OffscreenCanvas !== 'undefined',
+          isSafari: /^((?!chrome|android).)*safari/i.test(ua),
+          isFirefox: ua.toLowerCase().indexOf('firefox') !== -1
+        };
+      }
+
+      function getPromptCaptureGeometry(regionEl, sourceWidth, sourceHeight) {
+        var dpr = window.devicePixelRatio || 1;
+        var rect = regionEl.getBoundingClientRect();
+        var outputWidthCss = Math.max(2, Math.round(rect.width + (PROMPT_RECORD_PADDING_X * 2)));
+        var outputHeightCss = Math.max(2, Math.round(rect.height + (PROMPT_RECORD_PADDING_Y * 2)));
+        var targetPixelWidth = Math.max(2, Math.round(outputWidthCss * dpr));
+        var targetPixelHeight = Math.max(2, Math.round(outputHeightCss * dpr));
+        var viewportW = Math.max(window.innerWidth || 0, 1);
+        var viewportH = Math.max(window.innerHeight || 0, 1);
+        var videoW = Math.max(sourceWidth || 0, 1);
+        var videoH = Math.max(sourceHeight || 0, 1);
+        var scaleX = videoW / viewportW;
+        var scaleY = videoH / viewportH;
+        var centerXCss = rect.left + (rect.width / 2);
+        var centerYCss = rect.top + (rect.height / 2);
+        var srcW = Math.min(videoW, targetPixelWidth);
+        var srcH = Math.min(videoH, targetPixelHeight);
+        var centerXVideo = centerXCss * scaleX;
+        var centerYVideo = centerYCss * scaleY;
+        var srcX = Math.round(centerXVideo - (srcW / 2));
+        var srcY = Math.round(centerYVideo - (srcH / 2));
+
+        if (srcX < 0) srcX = 0;
+        if (srcY < 0) srcY = 0;
+        if (srcX + srcW > videoW) srcX = Math.max(0, videoW - srcW);
+        if (srcY + srcH > videoH) srcY = Math.max(0, videoH - srcH);
+
+        return {
+          srcX: srcX,
+          srcY: srcY,
+          srcW: srcW,
+          srcH: srcH,
+          dpr: dpr
+        };
+      }
+
+      async function getPromptWebCodecsEncoderConfig(width, height) {
+        if (!window.VideoEncoder || !VideoEncoder.isConfigSupported) return null;
+        var configs = [
+          { codec: 'avc1.42001f', width: width, height: height, bitrate: PROMPT_RECORD_VIDEO_BITRATE, framerate: PROMPT_RECORD_FPS, hardwareAcceleration: 'prefer-hardware' },
+          { codec: 'vp09.00.10.08', width: width, height: height, bitrate: PROMPT_RECORD_VIDEO_BITRATE, framerate: PROMPT_RECORD_FPS, hardwareAcceleration: 'prefer-hardware' },
+          { codec: 'vp8', width: width, height: height, bitrate: PROMPT_RECORD_VIDEO_BITRATE, framerate: PROMPT_RECORD_FPS, hardwareAcceleration: 'prefer-hardware' }
+        ];
+        for (var i = 0; i < configs.length; i++) {
+          try {
+            var support = await VideoEncoder.isConfigSupported(configs[i]);
+            if (support && support.supported) return support.config;
+          } catch (error) {
+            // Try next codec.
+          }
+        }
+        return null;
+      }
+
+      async function startPromptRegionRecordingOffscreen(regionEl, useWebCodecs) {
+        if (!window.OffscreenCanvas) throw new Error('OffscreenCanvas unavailable');
+
+        var displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: PROMPT_RECORD_FPS },
+            cursor: 'always'
+          },
+          audio: false
+        });
+
+        var sourceVideo = document.createElement('video');
+        sourceVideo.muted = true;
+        sourceVideo.playsInline = true;
+        sourceVideo.srcObject = displayStream;
+        await sourceVideo.play();
+
+        var initialGeometry = getPromptCaptureGeometry(regionEl, sourceVideo.videoWidth, sourceVideo.videoHeight);
+        var offscreen = new OffscreenCanvas(initialGeometry.srcW, initialGeometry.srcH);
+        var offCtx = offscreen.getContext('2d', { alpha: false, desynchronized: true }) || offscreen.getContext('2d');
+        var outputCanvas = document.createElement('canvas');
+        outputCanvas.width = initialGeometry.srcW;
+        outputCanvas.height = initialGeometry.srcH;
+        var outputCtx = outputCanvas.getContext('2d');
+        var outputStream = outputCanvas.captureStream(PROMPT_RECORD_FPS);
+        var recorderSetup = createPromptMediaRecorder(outputStream);
+        var recorder = recorderSetup.recorder;
+
+        var encoder = null;
+        if (useWebCodecs) {
+          var encoderConfig = await getPromptWebCodecsEncoderConfig(initialGeometry.srcW, initialGeometry.srcH);
+          if (encoderConfig) {
+            encoder = new VideoEncoder({
+              output: function () {
+                // MediaRecorder still handles container output; this keeps WebCodecs active for high-fidelity frame pipeline.
+              },
+              error: function (err) {
+                console.error(err);
+              }
+            });
+            encoder.configure(encoderConfig);
+          }
+        }
+
+        var chunks = [];
+        var rafId = 0;
+        var stopped = false;
+        var frameIndex = 0;
+        var recordingDone;
+
+        function stopTracks(stream) {
+          if (!stream) return;
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+        }
+
+        function stopPainter() {
+          if (rafId) {
+            window.cancelAnimationFrame(rafId);
+            rafId = 0;
+          }
+        }
+
+        function cleanupSource() {
+          stopPainter();
+          stopTracks(outputStream);
+          stopTracks(displayStream);
+          sourceVideo.pause();
+          sourceVideo.srcObject = null;
+          if (encoder) {
+            try {
+              if (encoder.state !== 'closed') encoder.close();
+            } catch (error) {
+              // Ignore close failures.
+            }
+            encoder = null;
+          }
+        }
+
+        function paintRegionFrame() {
+          if (stopped) return;
+
+          var geometry = getPromptCaptureGeometry(regionEl, sourceVideo.videoWidth, sourceVideo.videoHeight);
+
+          offCtx.setTransform(1, 0, 0, 1, 0, 0);
+          offCtx.imageSmoothingEnabled = true;
+          offCtx.imageSmoothingQuality = 'high';
+          offCtx.clearRect(0, 0, offscreen.width, offscreen.height);
+          offCtx.drawImage(sourceVideo, geometry.srcX, geometry.srcY, geometry.srcW, geometry.srcH, 0, 0, offscreen.width, offscreen.height);
+
+          outputCtx.setTransform(1, 0, 0, 1, 0, 0);
+          outputCtx.imageSmoothingEnabled = true;
+          outputCtx.imageSmoothingQuality = 'high';
+          outputCtx.clearRect(0, 0, outputCanvas.width, outputCanvas.height);
+          outputCtx.drawImage(offscreen, 0, 0, outputCanvas.width, outputCanvas.height);
+
+          if (encoder && encoder.state === 'configured') {
+            try {
+              var frame = new VideoFrame(offscreen, { timestamp: Math.round(performance.now() * 1000) });
+              encoder.encode(frame, { keyFrame: frameIndex % (PROMPT_RECORD_FPS * 2) === 0 });
+              frame.close();
+            } catch (error) {
+              console.error(error);
+              try {
+                encoder.close();
+              } catch (closeError) {
+                // Ignore close failures.
+              }
+              encoder = null;
+            }
+          }
+
+          frameIndex++;
+          rafId = window.requestAnimationFrame(paintRegionFrame);
+        }
+
+        displayStream.getVideoTracks().forEach(function (track) {
+          track.addEventListener('ended', function () {
+            if (!stopped) {
+              stopped = true;
+              stopPainter();
+              if (recorder.state !== 'inactive') recorder.stop();
+            }
+          });
+        });
+
+        recorder.ondataavailable = function (event) {
+          if (event.data && event.data.size) chunks.push(event.data);
+        };
+
+        recordingDone = new Promise(function (resolve, reject) {
+          recorder.onstop = function () {
+            cleanupSource();
+            resolve(new Blob(chunks, { type: recorder.mimeType || 'video/webm' }));
+          };
+          recorder.onerror = function (event) {
+            cleanupSource();
+            reject(event.error || new Error('Recording failed.'));
+          };
+        });
+
+        paintRegionFrame();
+        recorder.start(200);
+
+        return {
+          preferredExtension: recorderSetup.preferredExtension,
+          stop: async function () {
+            if (stopped) return recordingDone;
+            stopped = true;
+            stopPainter();
+            if (encoder && encoder.state === 'configured') {
+              try {
+                await encoder.flush();
+              } catch (error) {
+                // Ignore flush errors.
+              }
+            }
+            if (recorder.state !== 'inactive') recorder.stop();
+            return recordingDone;
+          }
+        };
+      }
+
+      async function startPromptRegionRecordingProgressive(regionEl) {
+        var caps = getPromptRecordingCapabilities();
+
+        if (caps.supportsWebCodecs && caps.supportsOffscreenCanvas && !caps.isSafari && !caps.isFirefox) {
+          try {
+            return await startPromptRegionRecordingOffscreen(regionEl, true);
+          } catch (error) {
+            console.warn('WebCodecs recording pipeline failed, falling back:', error);
+          }
+        }
+
+        if (caps.supportsOffscreenCanvas && !caps.isSafari && !caps.isFirefox) {
+          try {
+            return await startPromptRegionRecordingOffscreen(regionEl, false);
+          } catch (error) {
+            console.warn('OffscreenCanvas recording pipeline failed, falling back:', error);
+          }
+        }
+
+        return startPromptRegionRecording(regionEl);
+      }
+
+      async function startPromptRegionRecording(regionEl) {
+        var displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            width: { ideal: 1920 },
+            height: { ideal: 1080 },
+            frameRate: { ideal: PROMPT_RECORD_FPS },
+            cursor: 'always'
+          },
+          audio: false
+        });
+
+        var sourceVideo = document.createElement('video');
+        sourceVideo.muted = true;
+        sourceVideo.playsInline = true;
+        sourceVideo.srcObject = displayStream;
+        await sourceVideo.play();
+
+        var canvas = document.createElement('canvas');
+        var canvasStream = canvas.captureStream(PROMPT_RECORD_FPS);
+        var recorderSetup = createPromptMediaRecorder(canvasStream);
+        var recorder = recorderSetup.recorder;
+        var chunks = [];
+        var rafId = 0;
+        var stopped = false;
+        var recordingDone;
+        var dpr = window.devicePixelRatio || 1;
+        var initialRect = regionEl.getBoundingClientRect();
+        var outputWidthCss = Math.max(2, Math.round(initialRect.width + (PROMPT_RECORD_PADDING_X * 2)));
+        var outputHeightCss = Math.max(2, Math.round(initialRect.height + (PROMPT_RECORD_PADDING_Y * 2)));
+        var targetPixelWidth = Math.max(2, Math.round(outputWidthCss * dpr));
+        var targetPixelHeight = Math.max(2, Math.round(outputHeightCss * dpr));
+
+        function stopTracks(stream) {
+          if (!stream) return;
+          stream.getTracks().forEach(function (track) {
+            track.stop();
+          });
+        }
+
+        function stopPainter() {
+          if (rafId) {
+            window.cancelAnimationFrame(rafId);
+            rafId = 0;
+          }
+        }
+
+        function cleanupSource() {
+          stopPainter();
+          stopTracks(canvasStream);
+          stopTracks(displayStream);
+          sourceVideo.pause();
+          sourceVideo.srcObject = null;
+        }
+
+        function paintRegionFrame() {
+          if (stopped) return;
+          var rect = regionEl.getBoundingClientRect();
+          var viewportW = Math.max(window.innerWidth || 0, 1);
+          var viewportH = Math.max(window.innerHeight || 0, 1);
+          var videoW = Math.max(sourceVideo.videoWidth || 0, 1);
+          var videoH = Math.max(sourceVideo.videoHeight || 0, 1);
+          var scaleX = videoW / viewportW;
+          var scaleY = videoH / viewportH;
+          var centerXCss = rect.left + (rect.width / 2);
+          var centerYCss = rect.top + (rect.height / 2);
+          var srcW = Math.min(videoW, targetPixelWidth);
+          var srcH = Math.min(videoH, targetPixelHeight);
+
+          var centerXVideo = centerXCss * scaleX;
+          var centerYVideo = centerYCss * scaleY;
+
+          var srcX = Math.round(centerXVideo - (srcW / 2));
+          var srcY = Math.round(centerYVideo - (srcH / 2));
+
+          if (srcX < 0) srcX = 0;
+          if (srcY < 0) srcY = 0;
+          if (srcX + srcW > videoW) srcX = Math.max(0, videoW - srcW);
+          if (srcY + srcH > videoH) srcY = Math.max(0, videoH - srcH);
+
+          if (canvas.width !== srcW || canvas.height !== srcH) {
+            canvas.width = srcW;
+            canvas.height = srcH;
+          }
+
+          var ctx = canvas.getContext('2d');
+          ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+          ctx.drawImage(sourceVideo, srcX, srcY, srcW, srcH, 0, 0, srcW / dpr, srcH / dpr);
+          rafId = window.requestAnimationFrame(paintRegionFrame);
+        }
+
+        displayStream.getVideoTracks().forEach(function (track) {
+          track.addEventListener('ended', function () {
+            if (!stopped) {
+              stopped = true;
+              stopPainter();
+              if (recorder.state !== 'inactive') recorder.stop();
+            }
+          });
+        });
+
+        recorder.ondataavailable = function (event) {
+          if (event.data && event.data.size) chunks.push(event.data);
+        };
+
+        recordingDone = new Promise(function (resolve, reject) {
+          recorder.onstop = function () {
+            cleanupSource();
+            resolve(new Blob(chunks, { type: recorder.mimeType || 'video/webm' }));
+          };
+          recorder.onerror = function (event) {
+            cleanupSource();
+            reject(event.error || new Error('Recording failed.'));
+          };
+        });
+
+        paintRegionFrame();
+        recorder.start(200);
+
+        return {
+          preferredExtension: recorderSetup.preferredExtension,
+          stop: function () {
+            if (stopped) return recordingDone;
+            stopped = true;
+            stopPainter();
+            if (recorder.state !== 'inactive') recorder.stop();
+            return recordingDone;
+          }
+        };
+      }
 
       function setPromptSimulateButtonsDisabled(disabled) {
         if (promptSimulateBtn) promptSimulateBtn.disabled = disabled;
         if (promptSimulateClickBtn) promptSimulateClickBtn.disabled = disabled;
+      }
+
+      async function runPromptSimulationWithOptionalRecording(simulationStarter) {
+        if (!promptRecordToggle || !promptRecordToggle.checked) {
+          simulationStarter();
+          return;
+        }
+
+        if (promptRecordingActive) return;
+        if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia || !window.MediaRecorder) {
+          alert('Screen recording is not supported in this browser.');
+          return;
+        }
+
+        var recorderSession = null;
+        promptRecordingActive = true;
+        setPromptRecButtonActive(true);
+        if (promptRecordingDownload) {
+          promptRecordingDownload.classList.remove('is-visible');
+        }
+        clearPromptRecordingUrl();
+
+        try {
+          try {
+            recorderSession = await startPromptRegionRecordingProgressive(promptStage);
+          } catch (pipelineError) {
+            console.warn('Progressive recording init failed, using legacy fallback:', pipelineError);
+            recorderSession = await startPromptRegionRecording(promptStage);
+          }
+          await delayMs(PROMPT_RECORD_PRE_SIM_DELAY_MS);
+          simulationStarter();
+          await waitForPromptSimulationComplete(180000);
+          await delayMs(PROMPT_RECORD_POST_SIM_DELAY_MS);
+          var recordedBlob = await recorderSession.stop();
+          if (recordedBlob && recordedBlob.size > 0 && promptRecordingDownload) {
+            var outputExtension = (recorderSession.preferredExtension === 'mp4' || /mp4/i.test(recordedBlob.type)) ? 'mp4' : 'webm';
+            promptRecordingUrl = URL.createObjectURL(recordedBlob);
+            promptRecordingDownload.href = promptRecordingUrl;
+            promptRecordingDownload.download = 'prompt-simulation-' + Date.now() + '.' + outputExtension;
+            promptRecordingDownload.textContent = outputExtension === 'mp4' ? 'Download recording (MP4)' : 'Download recording (WebM)';
+            promptRecordingDownload.classList.add('is-visible');
+            promptRecordingDownload.click();
+          }
+        } catch (error) {
+          console.error(error);
+        } finally {
+          promptRecordingActive = false;
+          setPromptRecButtonActive(false);
+        }
       }
 
       function typeIntoPromptField(text, charsPerSec, opts) {
@@ -2550,20 +3509,36 @@ Design crew</textarea>
 
       promptSimulateBtn.addEventListener('click', function () {
         var text = promptSimulateSource.value;
-        if (text) typeIntoPromptField(text, getTypingCharsPerSec());
+        if (!text) return;
+        runPromptSimulationWithOptionalRecording(function () {
+          typeIntoPromptField(text, getTypingCharsPerSec());
+        });
       });
 
       promptSimulateClickBtn.addEventListener('click', function () {
         var text = promptSimulateSource.value;
         if (!text) return;
-        typeIntoPromptField(text, getTypingCharsPerSec(), { skipEnableAfter: true })
-          .then(function () {
-            return runPromptCursorClick();
-          })
-          .finally(function () {
-            setPromptSimulateButtonsDisabled(false);
-          });
+        runPromptSimulationWithOptionalRecording(function () {
+          typeIntoPromptField(text, getTypingCharsPerSec(), { skipEnableAfter: true })
+            .then(function () {
+              return runPromptCursorClick();
+            })
+            .finally(function () {
+              setPromptSimulateButtonsDisabled(false);
+            });
+        });
       });
+
+      if (promptRecordToggle) {
+        promptRecordToggle.addEventListener('change', function () {
+          if (promptRecordToggleWrap) {
+            promptRecordToggleWrap.classList.toggle('is-recording', false);
+          }
+          if (promptRecordToggleLabel && !promptRecordingActive) {
+            promptRecordToggleLabel.textContent = 'Record output';
+          }
+        });
+      }
 
       promptDemoSend.addEventListener('click', function () {
         if (promptDemoInput.value.trim()) {
