@@ -707,6 +707,21 @@
       outline: none;
     }
 
+    .prompt-typing-font-row {
+      display: block;
+      margin-bottom: 12px;
+    }
+
+    .prompt-typing-font-row > .prompt-typing-speed {
+      display: block;
+      width: 100%;
+      margin-bottom: 0;
+    }
+
+    .prompt-typing-font-row > .prompt-typing-speed:not(:last-child) {
+      margin-bottom: 12px;
+    }
+
     .prompt-typing-speed {
       margin-bottom: 12px;
     }
@@ -1962,9 +1977,15 @@ Design crew</textarea>
             </div>
             <h3>Simulate typing</h3>
             <p class="prompt-hint">Text is typed into the preview like someone composing a message. <strong>Simulate + click</strong> also moves a cursor to the send button, plays a click and sparkles, then clears the field—good for screen recordings.</p>
-            <div class="prompt-typing-speed">
-              <label for="promptTypingSpeed">Typing speed <output id="promptTypingSpeedOut" for="promptTypingSpeed">48</output> <span style="font-weight:400;color:#8b949e">chars/sec</span></label>
-              <input type="range" id="promptTypingSpeed" min="6" max="160" value="48" step="1" aria-valuemin="6" aria-valuemax="160" aria-valuenow="48" />
+            <div class="prompt-typing-font-row">
+              <div class="prompt-typing-speed">
+                <label for="promptTypingSpeed">Typing speed <output id="promptTypingSpeedOut" for="promptTypingSpeed">48</output> <span style="font-weight:400;color:#8b949e">chars/sec</span></label>
+                <input type="range" id="promptTypingSpeed" min="6" max="160" value="48" step="1" aria-valuemin="6" aria-valuemax="160" aria-valuenow="48" />
+              </div>
+              <div class="prompt-typing-speed">
+                <label for="promptInputFontSize">Font size <output id="promptInputFontSizeOut" for="promptInputFontSize">15</output> <span style="font-weight:400;color:#8b949e">px</span></label>
+                <input type="range" id="promptInputFontSize" min="12" max="32" value="15" step="1" aria-valuemin="12" aria-valuemax="32" aria-valuenow="15" />
+              </div>
             </div>
             <textarea class="prompt-simulate-source" id="promptSimulateSource" placeholder="Paste or write text here, then Simulate…" rows="5"></textarea>
             <div class="prompt-simulate-row">
@@ -2722,6 +2743,8 @@ Design crew</textarea>
       const promptDemoSend = document.getElementById('promptDemoSend');
       const promptTypingSpeed = document.getElementById('promptTypingSpeed');
       const promptTypingSpeedOut = document.getElementById('promptTypingSpeedOut');
+      const promptInputFontSize = document.getElementById('promptInputFontSize');
+      const promptInputFontSizeOut = document.getElementById('promptInputFontSizeOut');
       const themeChips = document.querySelectorAll('#promptThemeChips .theme-chip');
       const THEME_PREFIX = 'prompt-theme-';
       let promptRecordingUrl = '';
@@ -2858,6 +2881,47 @@ Design crew</textarea>
       if (promptTypingSpeed) {
         promptTypingSpeed.addEventListener('input', syncTypingSpeedLabel);
         syncTypingSpeedLabel();
+      }
+
+      var PROMPT_PREVIEW_FONT_BASE = 15;
+      var PROMPT_PREVIEW_LINE_BASE = 22;
+
+      function getPromptInputFontSizePx() {
+        if (!promptInputFontSize) return PROMPT_PREVIEW_FONT_BASE;
+        var v = parseInt(promptInputFontSize.value, 10);
+        if (isNaN(v) || v < 8) return PROMPT_PREVIEW_FONT_BASE;
+        return v;
+      }
+
+      function applyPromptInputFontSize() {
+        var px = getPromptInputFontSizePx();
+        var linePreview = Math.max(16, Math.round((px * PROMPT_PREVIEW_LINE_BASE) / PROMPT_PREVIEW_FONT_BASE));
+        if (promptDemoInput) {
+          promptDemoInput.style.fontSize = px + 'px';
+          promptDemoInput.style.lineHeight = linePreview + 'px';
+        }
+        if (promptSimulateSource) {
+          promptSimulateSource.style.fontSize = px + 'px';
+          promptSimulateSource.style.lineHeight = Math.round(px * 1.45) + 'px';
+        }
+      }
+
+      function syncPromptInputFontSizeLabel() {
+        if (!promptInputFontSize || !promptInputFontSizeOut) return;
+        var v = getPromptInputFontSizePx();
+        promptInputFontSizeOut.textContent = String(v);
+        promptInputFontSize.setAttribute('aria-valuenow', String(v));
+      }
+
+      function onPromptInputFontSizeInput() {
+        syncPromptInputFontSizeLabel();
+        applyPromptInputFontSize();
+      }
+
+      if (promptInputFontSize) {
+        promptInputFontSize.addEventListener('input', onPromptInputFontSizeInput);
+        promptInputFontSize.addEventListener('change', onPromptInputFontSizeInput);
+        onPromptInputFontSizeInput();
       }
 
       var promptTyping = false;
